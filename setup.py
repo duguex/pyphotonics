@@ -7,7 +7,7 @@ VERSION = (here / "pyphotonics" / "VERSION").read_text(encoding="utf-8").strip()
 
 setup(
     name="pyphotonics",
-    packages=["pyphotonics"],
+    packages=["pyphotonics", "carriercapture"],
     entry_points={
         "console_scripts": [
             "pyphotonics=pyphotonics.cli:execute_cli",
@@ -17,13 +17,13 @@ setup(
     include_package_data=True,
     version=VERSION,
     license="gpl-3.0",
-    description="The PyPhotonics python code is a post-processing code written entirely in python which takes as input the output files of the VASP and phonopy codes for a defect system, and calculates the Huang-Rhys factor and the PL lineshapes for that system.",  # Give a short description about your library
+    description="Post-processing Python code that calculates photonic properties of defects using output files from VASP and phonopy. Computes Huang-Rhys factor, photoluminescence line-shapes, and carrier capture coefficients.",
     author="Sherif Abdulkader Tawfik",
     author_email="sherif.tawfic@gmail.com",
     long_description=README,
     long_description_content_type='text/markdown',
     url="https://github.com/sheriftawfikabbas/pyphotonics",
-    keywords=["DFT", "Material science", "Photoluminescence", "VASP"],
+    keywords=["DFT", "Material science", "Photoluminescence", "VASP", "Carrier capture"],
     install_requires=[
         "scipy",
         "numpy",

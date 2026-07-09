@@ -1,137 +1,122 @@
+"""Command-line interfaces for PyPhotonics."""
+
+from __future__ import annotations
+
 import argparse
-import os
-import random
 import sys
 from pathlib import Path
 from typing import Optional
-from .version import VERSION
+
 from oganesson.io.vasp import Outcar
+
+from .photoluminescence import Photoluminescence
+from .version import VERSION
 
 
 class CLI_Photoluminescence:
-    def __init__(self, argv: Optional[str] = None) -> None:
-        self.argv = argv or sys.argv[:]
-        self.prog_name = Path(self.argv[0]).name
-        self.formatter_class = argparse.RawDescriptionHelpFormatter
-        self.epilog = ""
-        self.version = VERSION
+    """CLI for Huang-Rhys factor and PL line-shape calculation."""
 
-        default_locale = os.environ.get("LANG", "en_US").split(".")[0]
-        # if default_locale not in AVAILABLE_LOCALES:
-        #     default_locale = DEFAULT_LOCALE
+    def __init__(self, argv: Optional[list[str]] = None) -> None:
+        argv = argv or sys.argv[:]
+        prog = Path(argv[0]).name
 
         parser = argparse.ArgumentParser(
-            prog=self.prog_name,
-            description=f"{self.prog_name} version {self.version}",
-            epilog=self.epilog,
-            formatter_class=self.formatter_class,
+            prog=prog,
+            description=f"{prog} version {VERSION}",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-
         parser.add_argument(
-            "--version", action="version", version=f"%(prog)s {self.version}"
+            "--version", action="version", version=f"%(prog)s {VERSION}"
         )
-
-        parser.add_argument("-v", "--verbose", action="store_true", help="verbosity")
-
         parser.add_argument(
-            "--contcar_ground_state",
             "-cgs",
+            "--contcar_ground_state",
             type=str,
-            help="directory of the ground state CONTCAR file",
+            required=True,
+            help="filename of the ground-state CONTCAR",
         )
-
+        parser.add_argument(
+            "-ces",
+            "--contcar_excited_state",
+            type=str,
+            required=True,
+            help="filename of the excited-state CONTCAR",
+        )
+        parser.add_argument(
+            "-m",
+            "--num_modes",
+            type=int,
+            required=True,
+            help="number of vibrational modes",
+        )
+        parser.add_argument(
+            "-M",
+            "--method",
+            type=str,
+            default="phonopy",
+            help='method: "phonopy", "phonopy-siesta", or "vasp"',
+        )
+        parser.add_argument(
+            "-r",
+            "--resolution",
+            type=int,
+            default=1000,
+            help="energy grid resolution (points per eV)",
+        )
         parser.add_argument(
             "--phonopy_path",
             type=str,
-            default="./phonopy/",
-            help="directory to the phonopy band.yaml file",
+            default="./phonopy",
+            help="directory containing phonopy band.yaml",
         )
 
-        parser.add_argument(
-            "--num_modes",
-            "-m",
-            type=int,
-            help="number of vibrational modes",
+        args = parser.parse_args(argv[1:])
+
+        pl = Photoluminescence(
+            ground_state=args.contcar_ground_state,
+            excited_state=args.contcar_excited_state,
+            num_modes=args.num_modes,
+            method=args.method,
+            resolution=args.resolution,
+            phonopy_path=args.phonopy_path,
         )
-
-        parser.add_argument(
-            "--resolution",
-            "-r",
-            type=int,
-            help="resolution of the PL line-shape",
-        )
-
-        parser.add_argument(
-            "--method",
-            "-M",
-            type=str,
-            help="method used to generate the vibrational modes",
-        )
-
-        arguments = parser.parse_args(self.argv[1:])
-
-        from .photoluminescence import Photoluminescence
-
-        photoluminescence = Photoluminescence(
-            ground_state=arguments.ground_state,
-            exceited_state=arguments.exceited_state,
-            numModes=arguments.numModes,
-            method=arguments.method,
-            resolution=arguments.resolution,
-            phonopy_path=arguments.phonopy_path,
-        )
-
-        photoluminescence.run()
+        pl.run()
 
 
 class CLI_INCARs:
-    def __init__(self, argv: Optional[str] = None) -> None:
-        self.argv = argv or sys.argv[:]
-        self.prog_name = Path(self.argv[0]).name
-        self.formatter_class = argparse.RawDescriptionHelpFormatter
-        self.epilog = ""
-        self.version = VERSION
+    """CLI for generating FERWE/FERDO INCAR tags for constrained DFT."""
 
-        default_locale = os.environ.get("LANG", "en_US").split(".")[0]
-        # if default_locale not in AVAILABLE_LOCALES:
-        #     default_locale = DEFAULT_LOCALE
+    def __init__(self, argv: Optional[list[str]] = None) -> None:
+        argv = argv or sys.argv[:]
+        prog = Path(argv[0]).name
 
         parser = argparse.ArgumentParser(
-            prog=self.prog_name,
-            description=f"{self.prog_name} version {self.version}",
-            epilog=self.epilog,
-            formatter_class=self.formatter_class,
+            prog=prog,
+            description=f"{prog} version {VERSION}",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-
         parser.add_argument(
-            "--version", action="version", version=f"%(prog)s {self.version}"
+            "--version", action="version", version=f"%(prog)s {VERSION}"
         )
-
-        parser.add_argument("-v", "--verbose", action="store_true", help="verbosity")
-
         parser.add_argument(
             "-f",
             "--vasp_folder",
             type=str,
             default="./",
-            help="the location of the VASP folder",
+            help="directory containing the VASP OUTCAR file",
         )
 
-        arguments = parser.parse_args(self.argv[1:])
+        args = parser.parse_args(argv[1:])
 
-        outcar = Outcar(arguments.vasp_folder, "OUTCAR")
-        u, d = outcar.get_ferwe_ferdo()
-        print("FERWE =", u)
-        print("FERDO =", d)
-
-
-def execute_cli(argv: Optional[str] = None) -> None:
-    cli = CLI_Photoluminescence()
+        outcar = Outcar(args.vasp_folder, "OUTCAR")
+        up, down = outcar.get_ferwe_ferdo()
+        print("FERWE =", up)
+        print("FERDO =", down)
 
 
-def execute_incars(argv: Optional[str] = None) -> None:
-    cli = CLI_INCARs()
+def execute_cli(argv: Optional[list[str]] = None) -> None:
+    CLI_Photoluminescence(argv)
 
 
-if __name__ == "__main__":
-    execute_cli()
+def execute_incars(argv: Optional[list[str]] = None) -> None:
+    CLI_INCARs(argv)
