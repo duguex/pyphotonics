@@ -114,6 +114,8 @@ print('S =', p.HuangRhyes())
 Note: qqs/lineshape cases have 27–125 MB band.yaml files; use `m=masses_kg` parameter to avoid yaml parser bottleneck (see `run_compare.py` for example).
 
 
+
+Numerical baseline (HR, Δ_R, Δ_Q) for all 8 cases recorded in `BASELINE.md`.
 No test runner, linter, or formatter configured.
 
 ---
