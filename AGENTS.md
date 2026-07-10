@@ -54,6 +54,8 @@ Author: Sherif Abdulkader Tawfik — GPL-3.0 — <https://github.com/sheriftawfi
 4. Compute Franck-Condon overlaps → capture coefficients
 5. (Optional) Marcus-type transfer rates, reorganization energy, mobility
 
+`qqs/lineshape/` (legacy, unmaintained) — earlier version of the photoluminescence and Jahn-Teller code from the original repository author. Contains 17 Python source files (`src/photonics2/`), two standalone scripts (`src/pl.py`, `src/phonon_struct_op.py`), 8 case study directories with VASP/phonopy input data (`cases/`), and regeneratable computation outputs (`output/`). Includes an alternative earlier snapshot with numpy-vectorized implementations (`src/lineshape_new_ref/`). Distinct code conventions: no type hints, no `from __future__ import annotations`, bare `except:` with `print()+sys.exit()`, absolute intra-package imports, `multiprocessing`/`concurrent.futures` imports.
+
 ---
 
 ## Key Directories
@@ -65,6 +67,7 @@ Author: Sherif Abdulkader Tawfik — GPL-3.0 — <https://github.com/sheriftawfi
 | `carriercapture/` | Carrier capture coefficient subpackage |
 | `test/` | Integration/demo scripts (no test framework) |
 | `testcode/` | Standalone test scripts and data |
+| `qqs/lineshape/` | Legacy code: `src/` (17 Python files + scripts), `cases/` (8 VASP/phonopy case studies), `output/` (figures + data), `src/lineshape_new_ref/` (earlier vectorized snapshot) |
 
 ---
 
@@ -91,6 +94,25 @@ cd test/photoluminscence && python diamond.py
 # Install (editable)
 pip install -e .
 ```
+```bash
+# Run legacy qqs/lineshape examples (from repo root)
+cd qqs/lineshape && python src/pl.py                     # uses src/INCAR config
+python run_compare.py                                     # side-by-side: current vs vectorized
+
+# Run with specific case (modify src/INCAR or pass inline):
+python -c "
+import sys; sys.path.insert(0, 'src')
+from photonics2.photoluminescence import Photoluminescence
+p = Photoluminescence('cases/Cs3Cu2Br5_STE/band.yaml', 'phonopy',
+    POSCAR_GRD='cases/Cs3Cu2Br5_STE/GS',
+    POSCAR_EX='cases/Cs3Cu2Br5_STE/ES',
+    n_defect=0, resolution=500)
+print('S =', p.HuangRhyes())
+"
+```
+
+Note: qqs/lineshape cases have 27–125 MB band.yaml files; use `m=masses_kg` parameter to avoid yaml parser bottleneck (see `run_compare.py` for example).
+
 
 No test runner, linter, or formatter configured.
 
@@ -100,7 +122,7 @@ No test runner, linter, or formatter configured.
 
 ### Main Package (`pyphotonics/`) — Refactored
 - **Typing**: Full type hints on all functions and methods (`from __future__ import annotations`)
-- **Error handling**: `FileNotFoundError` for missing input files, `ValueError`/`TypeError` for invalid params
+- **Error handling**: `FileNotFoundError` for missing input files, `ValueError`/`TypeError` for invalid params, `raise-from` chaining (`from exc`)
 - **Naming**: Consistent `snake_case` (methods, params, locals), `PascalCase` (classes), `SCREAMING_SNAKE` (constants)
 - **Constructor pattern**: Lightweight init → internal `_compute_hr()` / `_compute_s_omega()` methods
 - **Docstrings**: NumPy-style on all public methods, module-level docstring
@@ -111,13 +133,25 @@ No test runner, linter, or formatter configured.
 - **Dead code removed**: Empty `constants.py` deleted; unused `__init__.py` replaced with proper exports
 
 ### Carrier Capture (`carriercapture/`)
-- **Typing**: `from __future__ import annotations` in all files. Mix of `typing` module and modern union syntax.
-- **Dataclasses**: Core types (`Potential`, `ConfCoord`, `TransferCoord`) are `@dataclass`
+- **Typing**: `from __future__ import annotations` in all files. Mix of `typing` module and modern union syntax (`int | None`).
+- **Dataclasses**: Core types (`Potential`, `ConfCoord`, `TransferCoord`) are `@dataclass` with `field(default_factory=...)` for mutable defaults (ndarray, Callable, dict).
 - **Naming**: `snake_case` functions, `PascalCase` dataclasses, `_private` helpers, `SCREAMING_SNAKE` constants
 - **Error handling**: `ValueError` for preconditions, `RuntimeError` wrapping scipy failures
 - **Docstrings**: Present on all modules and public functions
-- **Julia parity**: Comments note Julia original behavior
+- **Julia parity**: Comments note Julia original behavior; numeric constants match Julia values exactly
 
+### Cross-cutting — Refactored Code
+- **Logging**: Zero logging framework — no `import logging` anywhere. All output via `print()` or file writes.
+- **Parallel/concurrency**: Zero — fully single-threaded numpy/scipy. No `multiprocessing`, no `concurrent.futures`, no async/await.
+- **Config/env**: Zero — no `os.environ`, no `configparser`, no `.env` files. All configuration via constructor params and CLI argparse.
+- **Decorators**: `@dataclass` (3×), `@property` (2×, backward-compat aliases), `@staticmethod` (1×, `_gaussian`), `@classmethod` (0×).
+- **Imports**: Relative intra-package imports throughout (`from .constants import ...`). stdlib → third-party → local ordering.
+
+### Legacy `qqs/lineshape/src/photonics2/` — Unmaintained
+- **No type hints**, no `from __future__ import annotations`
+- **Error handling**: Bare `except Exception:` / `except OSError:` with `print()` + `sys.exit()` — no exception chaining
+- **Imports**: Absolute intra-package (`from photonics2.xyz import XYZ`), no `__all__`
+- **Concurrency**: Imports `multiprocessing` and `concurrent.futures` (unused or unclear usage paths)
 ---
 
 ## Important Files
@@ -169,3 +203,4 @@ No test runner, linter, or formatter configured.
 | `oganesson` pulls deep dependency chain (torch, matgl, etc.) | `setup.py` | Heavy install; runs with warnings |
 | No `pyproject.toml` — uses legacy `setup.py` | root | Modern packaging features unavailable |
 | No test framework | project | No automated testing |
+| `qqs/lineshape/` legacy directory | `qqs/lineshape/` | Unmaintained code with different conventions; no type hints, bare except, multiprocessing imports. Reorganized into `src/`, `cases/`, `output/` |

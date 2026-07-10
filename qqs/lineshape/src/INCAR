@@ -1,6 +1,6 @@
-BAND_YAML = ./zlq/band.yaml
-GRD_POSCAR = ./zlq/GRD
-EXC_POSCAR = ./zlq/EXC
+BAND_YAML = cases/zlq/band.yaml
+GRD_POSCAR = cases/zlq/GRD
+EXC_POSCAR = cases/zlq/EXC
 gamma = 0.01
 zpl = 1.654
 gw = 0.002
