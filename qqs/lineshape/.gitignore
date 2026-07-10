@@ -1,0 +1,24 @@
+# === Output files (regeneratable) ===
+output/
+
+# === Regeneratable output inside case directories ===
+cases/**/*.data
+cases/**/*.png
+
+# === Phonopy band structure files (large, ~860 MB total) ===
+cases/**/band*.yaml
+cases/**/MAO-band*.yaml
+
+# === Mode visualization files (generated XSF, ~12 MB each set) ===
+cases/**/*.xsf
+
+# === Archives ===
+cases/**/*.zip
+
+# === Python cache ===
+__pycache__/
+*.pyc
+
+# === Editor artifacts ===
+*.swp
+src/photonics2/.git_orig/

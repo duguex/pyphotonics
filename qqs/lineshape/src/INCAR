@@ -1,0 +1,11 @@
+BAND_YAML = ./zlq/band.yaml
+GRD_POSCAR = ./zlq/GRD
+EXC_POSCAR = ./zlq/EXC
+gamma = 0.01
+zpl = 1.654
+gw = 0.002
+resolution = 4000
+T = 300
+plot_width = 2.5
+title = zlq
+process = emission
