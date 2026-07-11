@@ -54,7 +54,7 @@ Author: Sherif Abdulkader Tawfik — GPL-3.0 — <https://github.com/sheriftawfi
 4. Compute Franck-Condon overlaps → capture coefficients
 5. (Optional) Marcus-type transfer rates, reorganization energy, mobility
 
-`qqs/lineshape/` (legacy, unmaintained) — earlier version of the photoluminescence and Jahn-Teller code from the original repository author. Contains 17 Python source files (`src/photonics2/`), two standalone scripts (`src/pl.py`, `src/phonon_struct_op.py`), 8 case study directories with VASP/phonopy input data (`cases/`), and regeneratable computation outputs (`output/`). Includes an alternative earlier snapshot with numpy-vectorized implementations (`src/lineshape_new_ref/`). Distinct code conventions: no type hints, no `from __future__ import annotations`, bare `except:` with `print()+sys.exit()`, absolute intra-package imports, `multiprocessing`/`concurrent.futures` imports.
+`qqs/lineshape/` (legacy, unmaintained) — earlier version of the photoluminescence and Jahn-Teller code from the original repository author. 自 2026-07-11 合并后：`src/photonics2/photoluminescence.py` 和 `src/photonics2/plott.py` 与 `src/lineshape_new_ref/` 内的同名文件算法等价（cp 覆盖 + spec 决策表合并）；`src/pl.py` 按 spec 决策表合并。`src/photonics2/` 共 16 个 Python 源文件（含 10 个无人维护 JT/embedding/Schrödinger 旧模块）；`src/pl.py`、`src/phonon_struct_op.py` 顶层脚本；`src/lineshape_new_ref/` 保留供 `run_compare.py` A/B 回归；8 个 VASP/phonopy 案例在 `cases/`；regeneratable 计算输出在 `output/`。详见 `docs/superpowers/specs/2026-07-11-qqs-lineshape-merge-design.md`。代码规约：no type hints, no `from __future__ import annotations`, bare `except:` with `print()+sys.exit()`, absolute intra-package imports, `multiprocessing`/`concurrent.futures` imports.
 
 ---
 

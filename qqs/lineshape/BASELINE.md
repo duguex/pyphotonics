@@ -29,6 +29,7 @@ All 8 cases run with `resolution=500`, `n_defect=0`, fast parser path (`m=masses
 ## Notes
 
 - **HR, Δ_R, Δ_Q identical** between versions for all 8 cases.
-- **skipmodes differs** because A uses threshold `freq ≤ 0.005 eV` while B uses `freq ≤ 0.0 eV`. This does not affect the final HR since skipped modes contribute negligibly.
+- **skipmodes identical** between A and B after the 2026-07-11 merge (both use threshold `freq ≤ 0.0 eV`).
 - **Vbr HR is negative** (−2.72). Likely an input data issue (GS/ES ordering or convergence), not a code bug.
+- **Recorded commit**: see git log; **pre-merge commit** was `d43f491`.
 - Run via: `cd qqs/lineshape && python run_compare.py`
