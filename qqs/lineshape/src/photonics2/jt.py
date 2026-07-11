@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Sep  1 10:21:22 2022
+"""DEPRECATED/DORMANT — Jahn-Teller (E⊗e) solver.
 
-@author: 87930
+Status: dormant. Not maintained, not imported by any active code path
+(verified 2026-07-11 via grep). Import path fixed (`photonics` →
+`photonics2`) but module still depends on `sympy` and `joblib`, which
+are not installed. Future Jahn-Teller development would start here.
+
+Originally written 2022-09-01 by original repo author (87930).
 """
 #demensionless jt solver
 from unittest import result
 from joblib import PrintTime
 import numpy as np
 import matplotlib.pyplot as plt
-import math 
+import math
 import multiprocessing as mp
-import copy 
+import copy
 import concurrent.futures as concurrent
 import multiprocessing as mp
-from photonics.ht import band,phonon
+from photonics2.ht import band, phonon
 from sympy import false, minimal_polynomial
-import photonics.hermite as hermite
+import photonics2.hermite as hermite
 from matplotlib.pyplot import MultipleLocator, tight_layout
 
 def nl(k):

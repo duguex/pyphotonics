@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jul  1 14:48:32 2022
+"""DEPRECATED/DORMANT — defect-host lattice embedding tool.
 
-@author: 87930
+Status: dormant. Not maintained, not imported by any active code path
+(verified 2026-07-11). Originally written 2022-07-01. Syntax bug at
+line 134 (`"defect_force_constant"",0)` — fixed 2026-07-11 (extra
+quote removed). Future embedding-scheme development would start here.
+
+Originally written 2022-07-01 by original repo author (87930).
 """
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.io.vasp.inputs import Poscar, Kpoints
@@ -130,7 +134,7 @@ class embedding:
     
     def create_force_constant(self,r1,r2,ndefect_defect,ndefect_large,**parameter):
         self.single_force=self.read_force_constants(parameter.get("single_force_constant","0"))
-        self.defect_force=self.read_force_constants(parameter.get("defect_force_constant"",0)) 
+        self.defect_force=self.read_force_constants(parameter.get("defect_force_constant",0)) 
         self.single = Poscar.from_file("{}".format(perfect_lattice))
         self.large = Poscar.from_file("{}".format(perfect_lattice))
         self.defect = Poscar.from_file("{}".format(perfect_lattice))
@@ -145,6 +149,7 @@ class embedding:
                     force_constants[i][j]=self.defect_force[ref.find(i)][ref.find(j)]
                 else:
                     #find force in singlecell
+                    pass
                 
         
         
