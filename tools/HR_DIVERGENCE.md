@@ -44,7 +44,7 @@ brought all 9 cases into agreement is:
    `pymatgen.Structure.from_file` + `pbc_shortest_vectors` for both
    ground and excited structures, matching qqs's POSCAR order. The
    element the two libraries label as `atom 0` is now the same.
-   The fix is *one-sided on pyphot*; qqs's `ConfigurationCoordinate`
+   The fix is *one-sided on pyphotonics*; qqs's `ConfigurationCoordinate`
    was never touched.
 
 2. **Negative-frequency S clipping**: `pyphotonics` clips
