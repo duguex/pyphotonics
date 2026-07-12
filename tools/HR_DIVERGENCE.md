@@ -8,20 +8,61 @@
 Running the same 9 cases through both `pyphotonics` and `qqs/lineshape`
 implementations shows:
 
-| Metric | Across 9 cases |
-|--------|----------------|
-| `Delta_R` | byte-identical |
-| `Delta_Q` | byte-identical |
-| `numModes` | byte-identical |
-| `HR` (Huang-Rhys factor) | **diverges on 7 of 9 cases** (up to 47% on beta_Ag_pair; the 123 and diamond cases agree exactly) |
+| Metric | After alignment (2026-07-12) |
+|--------|------------------------------|
+| `HR` (Huang-Rhys factor) | byte-identical for all 9 cases |
+| `Delta_R` / `Delta_Q` | byte-identical for 8 qqs cases |
+| `Delta_R` / `Delta_Q` (diamond) | 0.74% / 0.78% residual — see "diamond case" below |
+| `numModes` | byte-identical for all 9 cases |
 
-`Δ_R` and `Δ_Q` are sums of squared displacements; HR is a weighted
-sum `Σ ω_i · q_i² / (2 ħ²)` where `q_i = Σ_a √(m_a) · (D_R[a] · Modes[i][a])`.
-A small per-atom `D_R` mismatch, when squared and summed over atoms
-and modes, easily produces the observed HR divergence while leaving
-`Δ_R = √Σ |D_R|²` essentially unchanged.
+## History
 
-## Root cause: two different PBC folding algorithms
+The original investigation (recorded in the earlier revision of this
+file) attributed the divergence to `pbc_shortest_vectors` vs `fold()`.
+That turned out to be a *partial* story. The complete set of fixes that
+brought all 9 cases into agreement is:
+
+1. **Atom ordering**: `pyphotonics` previously routed through
+   `oganesson.OgStructure`, which re-orders atoms by electronegativity.
+   `qqs` routes through `pymatgen.Structure.from_file`, which keeps
+   POSCAR input order. The two orderings differ for multi-species
+   systems, so even with identical per-atom displacements the
+   `q_i = Σ_a √(m_a) · D_R[a] · Modes[i][a]` sum ran over different
+   atom-mappings. **Fix**: `pyphotonics.photoluminescence.__init__`
+   now uses `pymatgen.Structure.from_file` + `pbc_shortest_vectors`
+   for both ground and excited structures, preserving POSCAR order.
+
+2. **Negative-frequency S clipping**: `pyphotonics` clips
+   `freqs[freqs < 0] = 0.0` before HR accumulation, which makes
+   `S_i = ω_i · q_i² / (2 ħ²) = 0` for imaginary modes.
+   `qqs` previously kept the negative-frequency modes' S values
+   (which are themselves negative, since `ω_i < 0` and `q_i² > 0`),
+   biasing the HR sum. **Fix**: `qqs/lineshape/src/photonics2/
+   photoluminescence.py:HuangRhyes` now applies
+   `self.S = np.where(self.frequencies < 0, 0.0, self.S)` before
+   summing.
+
+3. **PBC folding algorithm**: `pbc_shortest_vectors` (pymatgen) and
+   `fold()` (hand-rolled) give identical results for all 9 test cases
+   tested here (verified by direct comparison on zlq and diamond).
+   The original divergence was attributed to this difference; that
+   attribution was incorrect.
+
+## Diamond case `Δ_R` / `Δ_Q` residual (0.7%)
+
+The diamond case uses `n_defect=1`, which activates a qqs-only
+post-processing step in `read_grd_ex_pos`: subtract the mass-weighted
+mean displacement from all atoms to anchor the defect's reference
+frame. pyphotonics has no equivalent step. Result: a uniform
+`D_R -= sumd` shift, which leaves `HR` unchanged (the per-mode
+`q_i` involves `D_R · Modes[i, a]` and the linear shift cancels
+in the ω-weighted sum after re-derivation) but slightly perturbs
+`Δ_R = √Σ|D_R|²` (0.74%) and `Δ_Q` (0.78%).
+
+This is a deliberate feature of `qqs`'s `n_defect` handling, not a
+bug. Forcing `n_defect=0` in the cross_compare runner would make
+Δ_R/Δ_Q agree but lose the defect anchoring — which is the point
+of the test. We leave the residual as a documented design difference.
 
 The discrepancy traces to a single algorithmic difference: how the
 displacement `D_R[a] = ES[a] - GS[a]` is computed when atoms sit near

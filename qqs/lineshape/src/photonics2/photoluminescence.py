@@ -330,6 +330,8 @@ class Photoluminescence:
         hbar = constant.physical_constants["Planck constant over 2 pi"][0]
         hbar_eV = constant.physical_constants["Planck constant over 2 pi in eV s"][0]
         self.S = self.frequencies * self.q**2 / 2 / (hbar * hbar_eV)
+        # Zero out negative-frequency modes (pyphotonics clips freqs<0 to 0).
+        self.S = np.where(self.frequencies < 0, 0.0, self.S)
         self.HuangRhyes = np.sum(self.S)
 
         with open("D(e-g).data", "w") as f:

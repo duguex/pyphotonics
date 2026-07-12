@@ -117,10 +117,20 @@ class Photoluminescence:
         if not es_file.exists():
             raise FileNotFoundError(f"excited state not found: {es_file}")
 
-        og = OgStructure(file_name=str(gs_file))
+        # Read both structures with the same primitive (pymatgen), so
+        # the per-atom index in `delta_r` aligns with the Modes array
+        # (which is read from band.yaml in POSCAR input order). Using
+        # OgStructure here would re-order atoms by electronegativity
+        # and break the index alignment — see tools/HR_DIVERGENCE.md.
+        self._ground_structure = Structure.from_file(str(gs_file))
         self._excited_structure = Structure.from_file(str(es_file))
-        delta_r = og.get_delta_vector(self._excited_structure)
-        self._ground_structure = og.structure
+        from pymatgen.core.lattice import pbc_shortest_vectors
+        delta_r = pbc_shortest_vectors(
+            self._ground_structure.lattice,
+            self._ground_structure.frac_coords,
+            self._excited_structure.frac_coords,
+        )[np.arange(len(self._ground_structure)),
+          np.arange(len(self._excited_structure))]
         self.num_atoms = len(self._ground_structure)
 
         # ── Masses ───────────────────────────────────────────────
