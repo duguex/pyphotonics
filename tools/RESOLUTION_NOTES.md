@@ -92,6 +92,55 @@ For PL line-shape comparison between two implementations:
 
 For Huang-Rhys comparisons, `resolution` doesn't matter.
 
+## Why a naive fix doesn't work (2026-07-12 attempt)
+
+I tried replacing
+
+```python
+t = r * (np.arange(n) - n / 2)
+```
+
+with
+
+```python
+half_window = max(n * r / 2.0, 10.0 / gamma)
+t = np.linspace(-half_window, half_window, n)
+```
+
+The intent: decouple the gamma attenuation window from `n*r/2 = 1/(2·resolution)`.
+
+It failed: I_max still scales as 1/resolution². The reason is that
+`fft.ifft(Gt)` (used downstream to recover `A`) implicitly assumes
+`t` is sampled at `Δt = 1/(max_energy - min_energy)`, independent of
+`n`. Replacing `t` with a different `np.linspace` array breaks that
+assumption and corrupts the inverse FFT output.
+
+### Real fix (not yet applied)
+
+The only way to decouple γ from resolution is to move the γ
+attenuation from time-domain to energy-domain. The Fourier pair
+`exp(-γ|t|) ↔ (γ/π) / (ω² + γ²)` (Lorentzian) means: instead of
+applying `exp(-γ|t|)` between two FFTs, convolve the energy-domain
+output `A` with a Lorentzian of FWHM = 2γ. The result is independent
+of the t-array sizing.
+
+Sketch:
+
+```python
+A = fft.fft(G)                  # skip the gamma-attenuation step
+omega = np.linspace(min_energy, max_energy, n)
+# Lorentzian kernel: L(ω; ω0=0, γ) = (γ/π) / (ω² + γ²)
+kernel = (gamma / np.pi) / (omega**2 + gamma**2)
+A_out = np.convolve(A, kernel, mode='same') * (omega[1] - omega[0])
+```
+
+This requires no change to the t-axis and gives a γ-controlled
+Lorentzian broadening regardless of resolution.
+
+Trade-off: `np.convolve` is O(n²); for large n this is slower than
+the FFT-based approach. Acceptable for typical PL workflows where
+n ~ 10⁴.
+
 ## Related code
 
 - `qqs/lineshape/src/photonics2/photoluminescence.py:232-263` — PL()
