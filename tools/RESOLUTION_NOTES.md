@@ -155,27 +155,51 @@ to res=4000. After the fix, `A_max` is essentially constant. Trade-off:
 `np.convolve` is O(n²); for large n this is slower than the FFT-based
 approach. Acceptable for typical PL workflows where n ~ 10⁴.
 
-### Note on qqs `PL()` I computation
+### Common root cause: `r = 1/resolution` has two incompatible roles
 
-After the Lorentzian fix, qqs's `A` is correctly decoupled from
-resolution. However, qqs's `PLA()` computes
+Both the gamma-attenuation and the qqs-PLA bugs stem from the same
+underlying confusion: the variable `r = 1 / resolution` was used
+in code that *reads* `r` as if it were the FFT grid spacing, but
+FFT/IFFT **does not use `r` at all**. FFT/IFFT operate on `n` and
+`max_energy - min_energy`; the implicit time-step is
+`Δt = 1/(max_energy - min_energy)` and the energy-step is
+`Δω = (max_energy - min_energy) / n`. The relation `r = 1/resolution`
+happens to coincide with `Δω` because both libraries chose
+`max_energy - min_energy = 5 eV` and `n = 5 × resolution`. That
+coincidence makes `r` *look* like a physical step size, which is
+misleading.
 
-```python
-t = r * (np.arange(len(self.A)) + self.min_energy * self.resolution)
-self.I = self.A * (t * r)**3
-```
+The two bugs, before fix:
 
-which is `A * (omega * r)³ = A * omega³ * r³`. The extra `r³` factor
-makes qqs's `I` scale as 1/resolution³. This is a separate bug in
-qqs's I-computation, not part of the gamma-resolution decoupling fix.
-pyphotonics's `I = A * (i * r)**3 = A * omega³` (no extra r factor) is
-correct.
+1. **Gamma attenuation** (PL, both libraries): `t = r * (np.arange(n)
+   - n / 2)` was used as the time-axis for `exp(-γ|t|)`. Because
+   `t = r * (i - n/2)`, the γ-attenuation window spans
+   `[-1/(2r), +1/(2r)] = [-1/(2·resolution), +1/(2·resolution)]` —
+   coupled to `resolution`. The fix: move γ to energy domain as a
+   Lorentzian convolution.
+
+2. **qqs PLA I computation**: `t = r * (np.arange(n) + min_energy *
+   resolution); I = A * (t * r)**3`. Substituting, `t * r = r² *
+   (i + min_energy * res)` — but the actual omega is
+   `min_energy + i * r`, so `(t * r) = omega * r` (extra factor of `r`).
+   The fix: compute `omega = min_energy + np.arange(n) * r` directly,
+   `I = A * omega**3`.
+
+In both cases, the bug was treating `r` as a generic "step size" in
+places where the FFT/IFFT machinery doesn't actually use it. The
+fixes are decoupled in code but unified in concept: anywhere `r` was
+used as a factor or window, it was either wrong or coupled; replacing
+it with explicit `omega = min_energy + i * r` (or pure-γ expressions
+in the energy domain) makes the formulas independent of `resolution`
+in the right way.
 
 ## Related code
 
-- `qqs/lineshape/src/photonics2/photoluminescence.py:232-263` — PL()
-  method with γ attenuation.
-- `pyphotonics/photoluminescence.py:335-381` — PL() method with same
-  coupling.
+- `pyphotonics/photoluminescence.py:PL()` — γ via Lorentzian convolution.
+- `qqs/.../photoluminescence.py:PL()` — same.
+- `qqs/.../photoluminescence.py:PLA()` — direct omega array.
+- `tools/cross_compare.py` — verification runner.
+- `tools/HR_DIVERGENCE.md` — atom-order / negative-frequency fixes
+  (related but separate from the γ/r issues).
 - `tools/cross_compare.py` — runner; uses `resolution=500` for the 8
   qqs cases and `resolution=1000` for the diamond case.
