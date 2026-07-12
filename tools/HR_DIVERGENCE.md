@@ -25,24 +25,27 @@ brought all 9 cases into agreement is:
 1. **Which atom is "atom 0" differs between libraries, not the Σ
    ordering**: `pyphotonics` previously routed through
    `oganesson.OgStructure`, which re-orders atoms by electronegativity
-   (Sr before Cr for a Cr/Sr system). `qqs` routes through
-   `pymatgen.Structure.from_file`, which preserves POSCAR input order
-   (Cr before Sr). The `Modes` array is read from `band.yaml` in
-   POSCAR input order on both sides. So `Modes[mode, atom]` is the
-   same set of physical atoms in both implementations, but `D_R[i]`
-   refers to a different atom: pyphotonics's `D_R[0]` is Sr's
-   displacement, qqs's `D_R[0]` is Cr's. The HR formula
-   `q[mode] = Σ_a √(m_a) · D_R[a] · Modes[mode, a]` is internally
-   self-consistent on each side (each library matches its own `D_R`
-   ordering with its own `Modes` ordering), but the two libraries
-   compute a *different physical sum*: pyphotonics's `q[mode]` is
-   the Sr-dominated projection, qqs's is the Cr-dominated one. The
-   element-weighted sum then differs in proportion to the mode's
-   participation ratio on each element. **Fix**: `pyphotonics.
-   photoluminescence.__init__` now uses `pymatgen.Structure.from_file`
-   + `pbc_shortest_vectors` for both ground and excited structures,
-   matching qqs's POSCAR order. The element the two libraries label
-   as `atom 0` is now the same.
+   (Sr before Cr for a Cr/Sr system). `qqs` has *always* read POSCAR
+   via `pymatgen.Structure.from_file` (through its
+   `ConfigurationCoordinate.read_poscar`), which preserves POSCAR
+   input order (Cr before Sr). The `Modes` array is read from
+   `band.yaml` in POSCAR input order on both sides. So
+   `Modes[mode, atom]` is the same set of physical atoms in both
+   implementations, but `D_R[i]` referred to a different atom:
+   pyphotonics's `D_R[0]` was Sr's displacement, qqs's `D_R[0]`
+   was Cr's. The HR formula `q[mode] = Σ_a √(m_a) · D_R[a] · Modes[mode, a]`
+   is internally self-consistent on each side (each library matches
+   its own `D_R` ordering with its own `Modes` ordering), but the
+   two libraries computed a *different physical sum*: pyphotonics's
+   `q[mode]` was the Sr-dominated projection, qqs's was the
+   Cr-dominated one. The element-weighted sum then differed in
+   proportion to the mode's participation ratio on each element.
+   **Fix**: `pyphotonics.photoluminescence.__init__` now uses
+   `pymatgen.Structure.from_file` + `pbc_shortest_vectors` for both
+   ground and excited structures, matching qqs's POSCAR order. The
+   element the two libraries label as `atom 0` is now the same.
+   The fix is *one-sided on pyphot*; qqs's `ConfigurationCoordinate`
+   was never touched.
 
 2. **Negative-frequency S clipping**: `pyphotonics` clips
    `freqs[freqs < 0] = 0.0` before HR accumulation, which makes
@@ -68,6 +71,17 @@ caused by the two libraries disagreeing about array order — it was
 caused by them disagreeing about which element to *call* `atom 0`
 (and 1, 2, ..., N-1). The Σ itself is order-invariant; what changes
 is the *element being summed* at each index.
+
+### Why `diamond.py` shows no numerical change between pre- and post-fix
+
+Diamond's CONTCAR contains a single element (carbon). Whether the
+63 carbon atoms are ordered by POSCAR input or by electronegativity
+(all identical), the per-atom `D_R[a]`, `modes[mode, a]`, and
+`m[a]` arrays describe the same set of atoms, just shuffled.
+Because the HR Σ is over atoms and is permutation-invariant, the
+final HR is identical regardless of internal ordering. The fix
+only shows numerical impact on multi-element systems (the 8 qqs
+cases, all of which contain 2+ element types).
 
 ## Diamond case `Δ_R` / `Δ_Q` residual (0.7%)
 
