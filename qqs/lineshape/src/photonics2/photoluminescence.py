@@ -249,13 +249,19 @@ class Photoluminescence:
             raise ValueError(f"Unknown process: {self.process}")
 
         n = len(St)
-        t = r * (np.arange(n) - n / 2)
+        # Apply gamma broadening as a Lorentzian convolution in the
+        # energy domain instead of exp(-gamma*|t|) in the time domain.
+        # This decouples line-shape width from `resolution`. See
+        # tools/RESOLUTION_NOTES.md for analysis.
         if self.temperature > 1e-2:
-            Gt = np.exp(St + Ct + Ct[::-1] - St[0] - 2 * Ct[0] - SHR - self.gamma * np.abs(t))
+            G = np.exp(St + Ct + Ct[::-1] - St[0] - 2 * Ct[0] - SHR)
         else:
-            Gt = np.exp(St - St[0] - SHR - self.gamma * np.abs(t))
-
-        A = fft.ifft(Gt) * n / (self.max_energy - self.min_energy)
+            G = np.exp(St - St[0] - SHR)
+        A = fft.ifft(G) * n / (self.max_energy - self.min_energy)
+        omega = np.arange(n) * r - (n // 2) * r
+        kernel = (self.gamma / np.pi) / (omega**2 + self.gamma**2)
+        kernel = kernel / kernel.sum()
+        A = np.convolve(A, kernel, mode="same")
         shift = int((self.EZPL - self.min_energy) * self.resolution)
         idx = (shift - np.arange(n)) % n
         self.A = A[idx]

@@ -374,12 +374,16 @@ class Photoluminescence:
         G = np.exp(2.0 * np.pi * St - float(SHR))
 
         n = len(G)
-        Gt = np.zeros(n, dtype=complex)
-        for i in range(n):
-            t = r * (i - n / 2.0)
-            Gt[i] = G[i] * np.exp(-gamma * abs(t))
-
-        A = fft.fft(Gt)
+        # Apply gamma broadening as a Lorentzian convolution in the
+        # energy domain instead of exp(-gamma*|t|) in the time domain.
+        # This decouples the line-shape width from `resolution` —
+        # the convolution kernel depends only on `gamma`, not on the
+        # FFT grid spacing. See tools/RESOLUTION_NOTES.md for analysis.
+        A = fft.fft(G)
+        omega = np.arange(n) * r - (n // 2) * r
+        kernel = (gamma / np.pi) / (omega**2 + gamma**2)
+        kernel = kernel / kernel.sum()
+        A = np.convolve(A, kernel, mode="same")
 
         # Shift ZPL peak to EZPL
         tA = A.copy()

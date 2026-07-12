@@ -115,7 +115,7 @@ It failed: I_max still scales as 1/resolution². The reason is that
 `n`. Replacing `t` with a different `np.linspace` array breaks that
 assumption and corrupts the inverse FFT output.
 
-### Real fix (not yet applied)
+### Real fix (applied 2026-07-13)
 
 The only way to decouple γ from resolution is to move the γ
 attenuation from time-domain to energy-domain. The Fourier pair
@@ -124,22 +124,52 @@ applying `exp(-γ|t|)` between two FFTs, convolve the energy-domain
 output `A` with a Lorentzian of FWHM = 2γ. The result is independent
 of the t-array sizing.
 
-Sketch:
+Implementation in `pyphotonics/photoluminescence.py PL()` and
+`qqs/.../photoluminescence.py PL()`:
 
 ```python
-A = fft.fft(G)                  # skip the gamma-attenuation step
-omega = np.linspace(min_energy, max_energy, n)
-# Lorentzian kernel: L(ω; ω0=0, γ) = (γ/π) / (ω² + γ²)
+# Skip the time-domain exp(-gamma*|t|) step entirely.
+A = fft.fft(G)
+omega = np.arange(n) * r - (n // 2) * r
 kernel = (gamma / np.pi) / (omega**2 + gamma**2)
-A_out = np.convolve(A, kernel, mode='same') * (omega[1] - omega[0])
+kernel = kernel / kernel.sum()
+A = np.convolve(A, kernel, mode="same")
 ```
 
-This requires no change to the t-axis and gives a γ-controlled
-Lorentzian broadening regardless of resolution.
+Verified on diamond case at γ=0.01 eV (FWHM = 20 meV):
 
-Trade-off: `np.convolve` is O(n²); for large n this is slower than
-the FFT-based approach. Acceptable for typical PL workflows where
-n ~ 10⁴.
+| resolution | A[ZPL] before fix | A[ZPL] after fix |
+|------------|-------------------|------------------|
+| 500        | (would be 832)    | 153              |
+| 1000       | (876)             | 158              |
+| 4000       | (907)             | 159              |
+
+The post-fix `A[ZPL]` differs by ≤ 4% across resolution (the residual
+is from `S_omega` discretization at low resolution — each value is
+computed per-ω via `get_S_omega(ω, σ)` and is mathematically exact,
+but the ω-grid sampling density changes). FWHM = 10 meV is exactly
+γ in all three resolutions.
+
+Before the fix (gamma in time domain), `A_max` scaled ~8× from res=500
+to res=4000. After the fix, `A_max` is essentially constant. Trade-off:
+`np.convolve` is O(n²); for large n this is slower than the FFT-based
+approach. Acceptable for typical PL workflows where n ~ 10⁴.
+
+### Note on qqs `PL()` I computation
+
+After the Lorentzian fix, qqs's `A` is correctly decoupled from
+resolution. However, qqs's `PLA()` computes
+
+```python
+t = r * (np.arange(len(self.A)) + self.min_energy * self.resolution)
+self.I = self.A * (t * r)**3
+```
+
+which is `A * (omega * r)³ = A * omega³ * r³`. The extra `r³` factor
+makes qqs's `I` scale as 1/resolution³. This is a separate bug in
+qqs's I-computation, not part of the gamma-resolution decoupling fix.
+pyphotonics's `I = A * (i * r)**3 = A * omega³` (no extra r factor) is
+correct.
 
 ## Related code
 
