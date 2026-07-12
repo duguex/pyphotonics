@@ -270,11 +270,11 @@ class Photoluminescence:
 
     def PLA(self):
         r = 1 / self.resolution
-        t = r * (np.arange(len(self.A)) + self.min_energy * self.resolution)
+        omega = self.min_energy + np.arange(len(self.A)) * r
         if "emission" in self.process:
-            self.I = self.A * (t * r)**3
+            self.I = self.A * omega**3
         elif "absorption" in self.process:
-            self.I = self.A * (t * r)
+            self.I = self.A * omega
         else:
             print("process input error, input:", self.process)
             raise ValueError(f"Unknown process: {self.process}")
