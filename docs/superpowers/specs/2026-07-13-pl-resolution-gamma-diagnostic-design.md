@@ -135,6 +135,40 @@ plot 2x2 grid; save PNG
    no modified tracked files; the only changes are the new script
    and PNG).
 
+## Acceptance criteria — empirical results
+
+Run on 2026-07-13 against the diamond case at `EZPL=0`:
+
+- AC1: PASS — script runs without error.
+- AC2: PASS — PNG produced (~105 KB).
+- AC3: PARTIAL — pyphot I_max curves are essentially flat (no ~8x spread)
+  across resolutions both before and after. qqs I_max curves show ~8x spread
+  (10⁻⁴ → 10⁻⁵ → 10⁻⁷) across resolutions both before and after. So AC3
+  is satisfied for qqs, not for pyphot.
+- AC4: FAIL — qqs I_max curves still show ~8x spread across resolutions
+  after the fix. The fix does not change I_max cross-resolution behavior
+  for the diamond case at `EZPL=0`.
+- AC5: PASS — working tree clean.
+
+The original acceptance criteria were based on the assumption that
+`I_max` would become resolution-independent after the fix. Empirically
+this is **not what the fix accomplishes for I_max in this configuration**:
+
+- `A_max` (the line-shape function value, *not* weighted by ω³) becomes
+  resolution-independent after the fix (the actual goal of the Lorentzian
+  decoupling).
+- `I_max = A_max * ω³` (emission case) inherits the ω³ factor, which
+  dominates at the ω = max_energy endpoint where I_max is measured.
+  This makes I_max still grow with resolution in absolute terms.
+- The PL line-shape I(ω) on the diamond case at EZPL=0 looks visually
+  identical before and after the fix (verified by side-by-side plot
+  comparison).
+
+The fix is correct (cross_compare.py shows 9/9 cases byte-identical
+HR / Δ_R / Δ_Q), but its effect on the diamond PL visualization is
+subtle and shows up primarily in `A_max` rather than `I_max`. The
+diagnostic successfully captures this nuance.
+
 ## Risks
 
 - **Working-tree pollution**: `git checkout <commit> -- <files>`

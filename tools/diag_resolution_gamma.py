@@ -31,8 +31,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
-PRE_COMMIT = "8a5b2b9^"
-POST_COMMIT = "8a5b2b9"
+PRE_COMMIT = "e21d0b0^"
+POST_COMMIT = "5738e38"
 RESOLUTIONS = [500, 1000, 4000]
 GAMMAS = [0.001, 0.01, 0.05]
 DIAMOND = REPO / "test" / "photoluminscence"
