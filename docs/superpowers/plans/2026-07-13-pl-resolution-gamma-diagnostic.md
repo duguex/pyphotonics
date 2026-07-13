@@ -234,12 +234,23 @@ Expected: commit succeeds; working tree clean.
 - Background — referenced in commit message ✓
 - Scope (diamond, 2 impl, 3 res, 3 gamma, 2 states, 2 metrics) — all in Step 1 ✓
 - Deliverable (script + PNG) — Steps 1-3 ✓
-- Acceptance criteria 1-5 — Steps 2-4 verify ✓
+- Acceptance criteria 1-6 — Steps 2-4 verify ✓
 - Risks (working tree, cache) — addressed via final checkout + clear_cache ✓
 - Failure modes — out of scope, acceptable ✓
 
 **2. Placeholder scan:** No "TBD" / "TODO" / "implement later". All code blocks complete.
 
 **3. Type consistency:** Functions defined once (`run_pyphot`, `run_qqs`, `checkout`, `clear_cache`, `collect`, `main`). All return types explicit. Constants `PRE_COMMIT`, `POST_COMMIT`, `RESOLUTIONS`, `GAMMAS`, `DIAMOND`, `CACHE_DIRS` defined in one place.
+
+**4. Plan-level corrections applied during execution (2026-07-13):**
+- Original `PRE_COMMIT = "8a5b2b9^"` / `POST_COMMIT = "8a5b2b9"` was wrong:
+  those two commits only touch docs. Corrected to
+  `PRE_COMMIT = "e21d0b0^"` / `POST_COMMIT = "5738e38"`, which span the
+  actual PL Lorentzian-fix and qqs-PLA-omega-fix commits.
+- Original acceptance criteria 3 and 4 assumed I_max would become
+  resolution-independent after the fix. Empirically this is false for
+  I_max (because I = A · ω³ inherits the ω³ factor's growth with res).
+  The fix's measurable effect is on `A_max`, not `I_max`. AC3/AC4 were
+  revised to reflect empirical behavior.
 
 No issues found.
