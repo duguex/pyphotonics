@@ -87,3 +87,11 @@ Let's have an example. Let's say we have 8 kpoints in both spins, 216 bands, whe
 - `FERWE = 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0 143*1.0 1*0.0 1*1.0 71*0.0`
 - `FERDO = 142*1.0 74*0.0 142*1.0 74*0.0 142*1.0 74*0.0 142*1.0 74*0.0 142*1.0 74*0.0 142*1.0 74*0.0 142*1.0 74*0.0 142*1.0 74*0.0`
 
+## Agent / contributor docs
+
+| File | Role |
+|------|------|
+| [AGENTS.md](AGENTS.md) | **Canonical** coding-agent rules (short) |
+| [CLAUDE.md](CLAUDE.md) | Claude adapter + `@AGENTS.md` — not a second rulebook |
+| [docs/agent-conventions.md](docs/agent-conventions.md) | Architecture, conventions, known issues |
+
